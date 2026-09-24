@@ -696,8 +696,14 @@ void ufmod_do_effs(ufmod_t *ctx) {
             case FMUSIC_XM_GLOBALVOLSLIDE:
                 if (ctx->globalvsl >> 4) {
                     ctx->globalvolume += (ctx->globalvsl >> 4);
+#if UFMOD_RUNTIME_QUIRKS
+                    if (!(ctx->quirk_flags & UFMOD_QUIRK_UNCLAMPED_GLOBAL_VOLSLIDE) && ctx->globalvolume > 64) {
+                        ctx->globalvolume = 64;
+                    }
+#else
 #if UFMOD_SETGLOBALVOLUME_ON
                     if (ctx->globalvolume > 64) ctx->globalvolume = 64;
+#endif
 #endif
                 } else {
                     ctx->globalvolume -= (ctx->globalvsl & 0x0F);

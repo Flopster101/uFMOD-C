@@ -1,6 +1,10 @@
 #ifndef UFMOD_CONFIG_H
 #define UFMOD_CONFIG_H
 
+#ifndef UFMOD_RUNTIME_QUIRKS
+#define UFMOD_RUNTIME_QUIRKS 1
+#endif
+
 /* Feature options */
 #ifndef UFMOD_INFO_API_ON
 #define UFMOD_INFO_API_ON 1

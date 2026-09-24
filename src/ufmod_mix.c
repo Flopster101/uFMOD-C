@@ -5,7 +5,7 @@
 void ufmod_do_note(ufmod_t *ctx);
 void ufmod_do_effs(ufmod_t *ctx);
 
-static void mix_channel(FSOUND_CHANNEL *sc, int32_t *mix_buf, size_t num_samples) {
+static void mix_channel(ufmod_t *ctx, FSOUND_CHANNEL *sc, int32_t *mix_buf, size_t num_samples) {
     FSOUND_SAMPLE *sptr = sc->fsptr;
     if (!sptr || !sptr->buff || sptr->length == 0) return;
 
@@ -55,6 +55,14 @@ static void mix_channel(FSOUND_CHANNEL *sc, int32_t *mix_buf, size_t num_samples
             if (sc->ramp_count == 0) {
                 sc->ramp_leftvolume = target_L;
                 sc->ramp_rightvolume = target_R;
+#if UFMOD_RUNTIME_QUIRKS
+                if (target_L == 0 && target_R == 0) {
+                    if (!(ctx->quirk_flags & UFMOD_QUIRK_PERSIST_LOOPING_VOICES) && sc->actualvolume == 0) {
+                        sc->fsptr = NULL;
+                    }
+                    break;
+                }
+#else
 #if !UFMOD_PERSIST_LOOPING_VOICES_ON
                 if (target_L == 0 && target_R == 0 && sc->actualvolume == 0) {
                     sc->fsptr = NULL;
@@ -64,6 +72,7 @@ static void mix_channel(FSOUND_CHANNEL *sc, int32_t *mix_buf, size_t num_samples
                 if (target_L == 0 && target_R == 0) {
                     break;
                 }
+#endif
 #endif
             }
         }
@@ -179,7 +188,7 @@ size_t ufmod_render_frames(ufmod_t *ctx, int16_t *dest, size_t num_frames) {
         memset(ctx->mix_buf, 0, (size_t)chunk * 2 * sizeof(int32_t));
 
         for (size_t ch = 0; ch < (size_t)ctx->numchannels * 2; ch++) {
-            mix_channel(&ctx->Channels[ch], ctx->mix_buf, chunk);
+            mix_channel(ctx, &ctx->Channels[ch], ctx->mix_buf, chunk);
         }
 
         for (int32_t i = 0; i < chunk * 2; i++) {

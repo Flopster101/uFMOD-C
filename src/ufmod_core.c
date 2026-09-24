@@ -17,6 +17,16 @@ ufmod_t* ufmod_load(const void *data, size_t size, unsigned int sample_rate) {
     ctx->nextorder = -1;
     ctx->nextrow = -1;
 
+#if UFMOD_RUNTIME_QUIRKS
+    ctx->quirk_flags = 0;
+#if !UFMOD_SETGLOBALVOLUME_ON
+    ctx->quirk_flags |= UFMOD_QUIRK_UNCLAMPED_GLOBAL_VOLSLIDE;
+#endif
+#if UFMOD_PERSIST_LOOPING_VOICES_ON
+    ctx->quirk_flags |= UFMOD_QUIRK_PERSIST_LOOPING_VOICES;
+#endif
+#endif
+
     if (!ufmod_load_xm(ctx, data, size)) {
         ufmod_free(ctx);
         return NULL;
@@ -153,3 +163,21 @@ void ufmod_restart(ufmod_t *ctx) {
     }
 }
 #endif
+
+void ufmod_set_quirks(ufmod_t *ctx, unsigned int flags) {
+#if UFMOD_RUNTIME_QUIRKS
+    if (ctx) ctx->quirk_flags = flags;
+#else
+    (void)ctx;
+    (void)flags;
+#endif
+}
+
+unsigned int ufmod_get_quirks(const ufmod_t *ctx) {
+#if UFMOD_RUNTIME_QUIRKS
+    return ctx ? ctx->quirk_flags : 0;
+#else
+    (void)ctx;
+    return 0;
+#endif
+}

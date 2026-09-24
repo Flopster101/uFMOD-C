@@ -221,6 +221,7 @@ struct ufmod_context {
     int                finished;
     int                loop_count;
     int                target_loops;
+    unsigned int       quirk_flags;
     char               title[32];
 
     int32_t            mix_buf[FSOUND_BLOCK_SIZE * 2];

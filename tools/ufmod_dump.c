@@ -42,16 +42,24 @@ int main(int argc, char **argv) {
     const char *out_path = argv[2];
     double duration = 0.0;
     int target_loops = 0;
+    unsigned int quirks = 0xFFFFFFFF;
 
-    if (argc >= 4) {
-        if (strcmp(argv[3], "--loops") == 0 && argc >= 5) {
-            target_loops = atoi(argv[4]);
-        } else if (strncmp(argv[3], "-l", 2) == 0 && argc >= 5) {
-            target_loops = atoi(argv[4]);
-        } else {
-            duration = atof(argv[3]);
+    for (int i = 3; i < argc; i++) {
+        if ((strcmp(argv[i], "--loops") == 0 || strcmp(argv[i], "-l") == 0) && i + 1 < argc) {
+            target_loops = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--quirks") == 0 && i + 1 < argc) {
+            const char *q = argv[++i];
+            if (strcmp(q, "none") == 0) quirks = UFMOD_QUIRK_NONE;
+            else if (strcmp(q, "skidrow") == 0) quirks = UFMOD_QUIRK_SKIDROW_LAUNCHER;
+            else if (strcmp(q, "persist") == 0) quirks = UFMOD_QUIRK_PERSIST_LOOPING_VOICES;
+            else if (strcmp(q, "unclamped") == 0) quirks = UFMOD_QUIRK_UNCLAMPED_GLOBAL_VOLSLIDE;
+        } else if (strcmp(argv[i], "--skidrow") == 0) {
+            quirks = UFMOD_QUIRK_SKIDROW_LAUNCHER;
+        } else if (argv[i][0] != '-') {
+            duration = atof(argv[i]);
         }
-    } else {
+    }
+    if (duration == 0.0 && target_loops == 0) {
         duration = 60.0;
     }
 
@@ -81,6 +89,10 @@ int main(int argc, char **argv) {
     if (!ctx) {
         fprintf(stderr, "Failed to parse XM module with uFMOD\n");
         return 1;
+    }
+
+    if (quirks != 0xFFFFFFFF) {
+        ufmod_set_quirks(ctx, quirks);
     }
 
     if (target_loops > 0) {
