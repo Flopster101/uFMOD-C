@@ -225,6 +225,11 @@ struct ufmod_context {
     char               title[32];
 
     int32_t            mix_buf[FSOUND_BLOCK_SIZE * 2];
+
+    float              *scope_buffer;
+    size_t              scope_channels;
+    size_t              scope_samples;
+    size_t              scope_offset;
 };
 
 #endif

@@ -5,7 +5,7 @@
 void ufmod_do_note(ufmod_t *ctx);
 void ufmod_do_effs(ufmod_t *ctx);
 
-static void mix_channel(ufmod_t *ctx, FSOUND_CHANNEL *sc, int32_t *mix_buf, size_t num_samples) {
+static void mix_channel(ufmod_t *ctx, size_t channel, FSOUND_CHANNEL *sc, int32_t *mix_buf, size_t num_samples) {
     FSOUND_SAMPLE *sptr = sc->fsptr;
     if (!sptr || !sptr->buff || sptr->length == 0) return;
 
@@ -41,6 +41,11 @@ static void mix_channel(ufmod_t *ctx, FSOUND_CHANNEL *sc, int32_t *mix_buf, size
         int32_t diff = (int32_t)s1 - (int32_t)s0;
         int32_t interp = (int32_t)(((int64_t)diff * (sc->mixposlo >> 1)) >> 31);
         int32_t sample = (int32_t)s0 + interp;
+
+        if (ctx->scope_buffer && ctx->scope_channels > 0 && (size_t)(channel >> 1) < ctx->scope_channels) {
+            size_t scope_index = (size_t)(channel >> 1) * ctx->scope_samples + ctx->scope_offset + i;
+            ctx->scope_buffer[scope_index] += (float)sample / 32768.0f;
+        }
 
         int32_t l_sample = (int32_t)(((int64_t)sample * sc->ramp_leftvolume) >> 1);
         int32_t r_sample = (int32_t)(((int64_t)sample * sc->ramp_rightvolume) >> 1);
@@ -188,7 +193,7 @@ size_t ufmod_render_frames(ufmod_t *ctx, int16_t *dest, size_t num_frames) {
         memset(ctx->mix_buf, 0, (size_t)chunk * 2 * sizeof(int32_t));
 
         for (size_t ch = 0; ch < (size_t)ctx->numchannels * 2; ch++) {
-            mix_channel(ctx, &ctx->Channels[ch], ctx->mix_buf, chunk);
+            mix_channel(ctx, ch, &ctx->Channels[ch], ctx->mix_buf, chunk);
         }
 
         for (int32_t i = 0; i < chunk * 2; i++) {
@@ -205,6 +210,7 @@ size_t ufmod_render_frames(ufmod_t *ctx, int16_t *dest, size_t num_frames) {
 
         ctx->mixer_samplesleft -= chunk;
         frames_rendered += chunk;
+        if (ctx->scope_buffer) ctx->scope_offset += chunk;
         ctx->time_ms += (uint32_t)(((uint64_t)chunk * 1000) / ctx->mix_rate);
     }
 

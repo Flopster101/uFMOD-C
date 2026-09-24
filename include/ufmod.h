@@ -26,6 +26,8 @@ enum {
 
 ufmod_t* ufmod_load(const void *data, size_t size, unsigned int sample_rate);
 size_t   ufmod_render(ufmod_t *ctx, int16_t *dest, size_t num_frames);
+size_t   ufmod_render_with_scope(ufmod_t *ctx, int16_t *dest, size_t num_frames,
+                                 float *scope, size_t scope_channels);
 unsigned int ufmod_get_sample_rate(const ufmod_t *ctx);
 unsigned int ufmod_get_channel_count(const ufmod_t *ctx);
 void     ufmod_free(ufmod_t *ctx);

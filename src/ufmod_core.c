@@ -40,6 +40,26 @@ size_t ufmod_render(ufmod_t *ctx, int16_t *dest, size_t num_frames) {
     return ufmod_render_frames(ctx, dest, num_frames);
 }
 
+size_t ufmod_render_with_scope(ufmod_t *ctx, int16_t *dest, size_t num_frames,
+                                float *scope, size_t scope_channels) {
+    if (!ctx || !dest || !scope || num_frames == 0) return 0;
+    if (scope_channels > (size_t)ctx->numchannels) scope_channels = (size_t)ctx->numchannels;
+    memset(scope, 0, scope_channels * num_frames * sizeof(float));
+    ctx->scope_buffer = scope;
+    ctx->scope_channels = scope_channels;
+    ctx->scope_samples = num_frames;
+    ctx->scope_offset = 0;
+    size_t rendered = ufmod_render_frames(ctx, dest, num_frames);
+    for (size_t i = 0; i < scope_channels * num_frames; ++i) {
+        scope[i] *= 0.5f;
+    }
+    ctx->scope_buffer = NULL;
+    ctx->scope_channels = 0;
+    ctx->scope_samples = 0;
+    ctx->scope_offset = 0;
+    return rendered;
+}
+
 unsigned int ufmod_get_sample_rate(const ufmod_t *ctx) {
     return ctx ? ctx->mix_rate : 0;
 }
