@@ -45,10 +45,11 @@ static void mix_channel(ufmod_t *ctx, size_t channel, FSOUND_CHANNEL *sc, int32_
         int32_t l_sample = (int32_t)(((int64_t)sample * sc->ramp_leftvolume) >> 1);
         int32_t r_sample = (int32_t)(((int64_t)sample * sc->ramp_rightvolume) >> 1);
 
-        if (ctx->scope_buffer && ctx->scope_channels > 0 && (channel & 1) == 0 &&
+        if (ctx->scope_buffer && ctx->scope_channels > 0 &&
                 (size_t)(channel >> 1) < ctx->scope_channels) {
             size_t scope_index = (size_t)(channel >> 1) * ctx->scope_samples + ctx->scope_offset + i;
-            ctx->scope_buffer[scope_index] += (float)l_sample / 266338304.0f;
+            const int32_t scope_sample = (channel & 1) == 0 ? l_sample : r_sample;
+            ctx->scope_buffer[scope_index] += (float)scope_sample / 532676608.0f;
         }
 
         mix_buf[i * 2 + 0] += l_sample;
