@@ -55,10 +55,16 @@ static void mix_channel(FSOUND_CHANNEL *sc, int32_t *mix_buf, size_t num_samples
             if (sc->ramp_count == 0) {
                 sc->ramp_leftvolume = target_L;
                 sc->ramp_rightvolume = target_R;
+#if !UFMOD_PERSIST_LOOPING_VOICES_ON
                 if (target_L == 0 && target_R == 0 && sc->actualvolume == 0) {
                     sc->fsptr = NULL;
                     break;
                 }
+#else
+                if (target_L == 0 && target_R == 0) {
+                    break;
+                }
+#endif
             }
         }
 

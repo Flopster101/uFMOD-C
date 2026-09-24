@@ -58,6 +58,7 @@ void ufmod_free(ufmod_t *ctx) {
     free(ctx);
 }
 
+#if UFMOD_VOL_CONTROL_ON
 void ufmod_set_volume(ufmod_t *ctx, unsigned int volume) {
     if (!ctx) return;
     if (volume > UFMOD_VOL_MAX) volume = UFMOD_VOL_MAX;
@@ -68,14 +69,19 @@ unsigned int ufmod_get_volume(const ufmod_t *ctx) {
     if (!ctx) return 0;
     return (ctx->vol_scale * UFMOD_VOL_MAX) / 32768;
 }
+#endif
 
+#if UFMOD_INFO_API_ON
 unsigned int ufmod_get_time(const ufmod_t *ctx) {
     return ctx ? ctx->time_ms : 0;
 }
+#endif
 
+#if UFMOD_NOLOOP_ON
 void ufmod_set_noloop(ufmod_t *ctx, int noloop) {
     if (ctx) ctx->noloop = noloop;
 }
+#endif
 
 int ufmod_get_loop_count(const ufmod_t *ctx) {
     return ctx ? ctx->loop_count : 0;
@@ -85,6 +91,7 @@ void ufmod_set_target_loops(ufmod_t *ctx, int target_loops) {
     if (ctx) ctx->target_loops = target_loops;
 }
 
+#if UFMOD_INFO_API_ON
 const char* ufmod_get_title(const ufmod_t *ctx) {
     return ctx ? ctx->title : "";
 }
@@ -94,3 +101,4 @@ void ufmod_get_row_order(const ufmod_t *ctx, unsigned int *row, unsigned int *or
     if (row) *row = (unsigned int)ctx->row;
     if (order) *order = (unsigned int)ctx->order;
 }
+#endif

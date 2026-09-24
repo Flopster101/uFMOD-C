@@ -245,13 +245,17 @@ static void update_channel_sound(ufmod_t *ctx, uF_MOD_CHANNEL *cptr, FSOUND_SAMP
         if (vol < 0) vol = 0;
         if (vol > 64) vol = 64;
 
+#if UFMOD_GLOBALVOL_ON
         int32_t v = vol * 255 * ctx->globalvolume;
+#else
+        int32_t v = vol * 255 * 64;
+#endif
         if (v > 0xFF000) v = 0xFF000;
 
         uint64_t full_vol = ((uint64_t)v * (uint32_t)cptr->envvol) >> 6;
         full_vol = ((uint64_t)full_vol * (uint32_t)cptr->fadeoutvol) >> 16;
         int32_t actualvol = (int32_t)(full_vol >> 13);
-        if (actualvol > 255) actualvol = 255;
+        if (actualvol > 127) actualvol = 127;
         if (actualvol < 0) actualvol = 0;
         sc->actualvolume = actualvol;
 
@@ -345,11 +349,8 @@ void ufmod_do_note(ufmod_t *ctx) {
             cptr->period = period;
             if (!porta) {
                 cptr->freq = period;
-                cptr->notectrl |= FMUSIC_TRIGGER;
-            } else {
-                cptr->portatarget = period;
-                cptr->notectrl &= ~(FMUSIC_TRIGGER | FMUSIC_FREQ);
             }
+            cptr->notectrl |= FMUSIC_TRIGGER;
         }
 
         if (n->number > 0 && sptr) {
@@ -374,70 +375,105 @@ void ufmod_do_note(ufmod_t *ctx) {
             cptr->notectrl |= FMUSIC_VOLUME | FMUSIC_PAN;
         }
 
+#if UFMOD_VOLUMEBYTE_ON
         if (n->uvolume > 0) {
             apply_volbyte(cptr, n->uvolume);
         }
+#endif
 
+#if UFMOD_KEYOFF_ON
         if (n->note == 97 || n->effect == FMUSIC_XM_KEYOFF) {
             cptr->keyoff = 1;
         }
+#endif
 
+#if UFMOD_VOLUMEENVELOPE_ON
         if (iptr && (iptr->VOLtype & 1)) {
             process_envelope(cptr, iptr, 0);
         } else if (cptr->keyoff) {
             cptr->envvol = 0;
         }
+#else
+        if (cptr->keyoff) {
+            cptr->envvol = 0;
+        }
+#endif
 
+#if UFMOD_PANENVELOPE_ON
         if (iptr && (iptr->PANtype & 1)) {
             process_envelope(cptr, iptr, 1);
         }
+#endif
 
         uint8_t param = n->eparam;
         switch (n->effect) {
+#if UFMOD_PORTAUP_OR_DOWN_ON
             case FMUSIC_XM_PORTAUP:
             case FMUSIC_XM_PORTADOWN:
                 if (param) cptr->portaupdown = param;
                 break;
+#endif
+#if UFMOD_PORTATO_ON
             case FMUSIC_XM_PORTATO:
                 if (param) cptr->portaspeed = param;
                 cptr->portatarget = cptr->period;
-                cptr->notectrl &= ~(FMUSIC_TRIGGER | FMUSIC_FREQ);
+                cptr->notectrl &= ~FMUSIC_TRIGGER;
                 break;
+#endif
+#if UFMOD_PORTATOVOLSLIDE_ON
             case FMUSIC_XM_PORTATOVOLSLIDE:
                 if (param) cptr->volslide = param;
                 cptr->portatarget = cptr->period;
-                cptr->notectrl &= ~(FMUSIC_TRIGGER | FMUSIC_FREQ);
+                cptr->notectrl &= ~FMUSIC_TRIGGER;
                 break;
+#endif
+#if UFMOD_VIBRATO_ON
             case FMUSIC_XM_VIBRATO:
                 if (param >> 4) cptr->vibspeed = param >> 4;
                 if (param & 0x0F) cptr->vibdepth = param & 0x0F;
                 break;
+#endif
+#if UFMOD_VIBRATOVOLSLIDE_ON
             case FMUSIC_XM_VIBRATOVOLSLIDE:
                 if (param) cptr->volslide = param;
                 break;
+#endif
+#if UFMOD_TREMOLO_ON
             case FMUSIC_XM_TREMOLO:
                 if (param >> 4) cptr->tremolospeed = param >> 4;
                 if (param & 0x0F) cptr->tremolodepth = param & 0x0F;
                 break;
+#endif
+#if UFMOD_SETSAMPLEOFFSET_ON
             case FMUSIC_XM_SETSAMPLEOFFSET:
                 if (param) cptr->sampleoffset = (int32_t)param << 8;
                 cptr->cptr->fsampleoffset = cptr->sampleoffset;
                 break;
+#endif
+#if UFMOD_VOLUMESLIDE_ON
             case FMUSIC_XM_VOLUMESLIDE:
                 if (param) cptr->volslide = param;
                 break;
+#endif
+#if UFMOD_PATTERNJUMP_ON
             case FMUSIC_XM_PATTERNJUMP:
                 ctx->nextorder = param;
                 ctx->nextrow = 0;
                 break;
+#endif
+#if UFMOD_SETVOLUME_ON
             case FMUSIC_XM_SETVOLUME:
                 cptr->volume = param > 64 ? 64 : param;
                 cptr->notectrl |= FMUSIC_VOLUME;
                 break;
+#endif
+#if UFMOD_PATTERNBREAK_ON
             case FMUSIC_XM_PATTERNBREAK:
                 ctx->nextorder = (ctx->nextorder >= 0) ? ctx->nextorder : ctx->order + 1;
                 ctx->nextrow = (param >> 4) * 10 + (param & 0x0F);
                 break;
+#endif
+#if UFMOD_SETSPEED_ON
             case FMUSIC_XM_SETSPEED:
                 if (param < 0x20) {
                     ctx->speed = param ? param : 1;
@@ -445,43 +481,62 @@ void ufmod_do_note(ufmod_t *ctx) {
                     ufmod_set_bpm(ctx, param);
                 }
                 break;
+#endif
+#if UFMOD_SETGLOBALVOLUME_ON
             case FMUSIC_XM_SETGLOBALVOLUME:
                 ctx->globalvolume = param > 64 ? 64 : param;
                 break;
+#endif
+#if UFMOD_GLOBALVOLSLIDE_ON
             case FMUSIC_XM_GLOBALVOLSLIDE:
                 if (param) ctx->globalvsl = param;
                 break;
+#endif
+#if UFMOD_PANSLIDE_ON
             case FMUSIC_XM_PANSLIDE:
                 if (param) cptr->panslide = param;
                 break;
+#endif
+#if UFMOD_SETPANPOSITION_ON
             case FMUSIC_XM_SETPANPOSITION:
                 cptr->pan = param;
                 cptr->notectrl |= FMUSIC_PAN;
                 break;
+#endif
             case FMUSIC_XM_SPECIAL: {
                 uint8_t cmd = param >> 4;
                 uint8_t p = param & 0x0F;
                 switch (cmd) {
+#if UFMOD_FINEPORTAUP_ON
                     case FMUSIC_XM_FINEPORTAUP:
                         if (p) cptr->fineportaup = p;
                         cptr->freq -= (int32_t)cptr->fineportaup << 2;
                         if (cptr->freq < 1) cptr->freq = 1;
                         cptr->notectrl |= FMUSIC_FREQ;
                         break;
+#endif
+#if UFMOD_FINEPORTADOWN_ON
                     case FMUSIC_XM_FINEPORTADOWN:
                         if (p) cptr->fineportadown = p;
                         cptr->freq += (int32_t)cptr->fineportadown << 2;
                         cptr->notectrl |= FMUSIC_FREQ;
                         break;
+#endif
+#if UFMOD_SETVIBRATOWAVE_ON
                     case FMUSIC_XM_SETVIBRATOWAVE:
                         cptr->wavecontrol = (cptr->wavecontrol & 0xF0) | (p & 0x0F);
                         break;
+#endif
+#if UFMOD_SETTREMOLOWAVE_ON
                     case FMUSIC_XM_SETTREMOLOWAVE:
                         cptr->wavecontrol = (cptr->wavecontrol & 0x0F) | ((p & 0x0F) << 4);
                         break;
+#endif
+#if UFMOD_PATTERNDELAY_ON
                     case FMUSIC_XM_PATTERNDELAY:
                         ctx->patterndelay = p;
                         break;
+#endif
                 }
                 break;
             }
@@ -519,12 +574,16 @@ void ufmod_do_effs(ufmod_t *ctx) {
         cptr->freqdelta = 0;
         cptr->notectrl = 0;
 
+#if UFMOD_VOLUMEENVELOPE_ON
         if (iptr && (iptr->VOLtype & 1)) {
             process_envelope(cptr, iptr, 0);
         }
+#endif
+#if UFMOD_PANENVELOPE_ON
         if (iptr && (iptr->PANtype & 1)) {
             process_envelope(cptr, iptr, 1);
         }
+#endif
 
         if (cptr->keyoff && iptr) {
             if (cptr->fadeoutvol > iptr->VOLfade) {
@@ -535,6 +594,7 @@ void ufmod_do_effs(ufmod_t *ctx) {
             cptr->notectrl |= FMUSIC_VOLUME;
         }
 
+#if UFMOD_VOLUMEBYTE_ON
         if (n->uvolume > 0) {
             uint8_t hi = n->uvolume >> 4;
             uint8_t lo = n->uvolume & 0x0F;
@@ -548,9 +608,11 @@ void ufmod_do_effs(ufmod_t *ctx) {
                 cptr->notectrl |= FMUSIC_VOLUME;
             }
         }
+#endif
 
         uint8_t param = n->eparam;
         switch (n->effect) {
+#if UFMOD_ARPEGGIO_ON
             case 0x00: // Arpeggio
                 if (param) {
                     uint8_t step = ctx->tick % 3;
@@ -561,23 +623,33 @@ void ufmod_do_effs(ufmod_t *ctx) {
                     cptr->notectrl |= FMUSIC_FREQ;
                 }
                 break;
+#endif
+#if UFMOD_PORTAUP_ON
             case FMUSIC_XM_PORTAUP:
                 cptr->freq -= (int32_t)cptr->portaupdown << 2;
                 if (cptr->freq < 1) cptr->freq = 1;
                 cptr->freqdelta = 0;
                 cptr->notectrl |= FMUSIC_FREQ;
                 break;
+#endif
+#if UFMOD_PORTADOWN_ON
             case FMUSIC_XM_PORTADOWN:
                 cptr->freq += (int32_t)cptr->portaupdown << 2;
                 cptr->freqdelta = 0;
                 cptr->notectrl |= FMUSIC_FREQ;
                 break;
+#endif
+#if UFMOD_PORTATO_ON
             case FMUSIC_XM_PORTATO:
                 apply_portamento(cptr);
                 break;
+#endif
+#if UFMOD_VIBRATO_ON
             case FMUSIC_XM_VIBRATO:
                 apply_vibrato(cptr);
                 break;
+#endif
+#if UFMOD_PORTATOVOLSLIDE_ON
             case FMUSIC_XM_PORTATOVOLSLIDE:
                 apply_portamento(cptr);
                 if (cptr->volslide >> 4) {
@@ -589,6 +661,8 @@ void ufmod_do_effs(ufmod_t *ctx) {
                 }
                 cptr->notectrl |= FMUSIC_VOLUME;
                 break;
+#endif
+#if UFMOD_VIBRATOVOLSLIDE_ON
             case FMUSIC_XM_VIBRATOVOLSLIDE:
                 apply_vibrato(cptr);
                 if (cptr->volslide >> 4) {
@@ -600,9 +674,13 @@ void ufmod_do_effs(ufmod_t *ctx) {
                 }
                 cptr->notectrl |= FMUSIC_VOLUME;
                 break;
+#endif
+#if UFMOD_TREMOLO_ON
             case FMUSIC_XM_TREMOLO:
                 apply_tremolo(cptr);
                 break;
+#endif
+#if UFMOD_VOLUMESLIDE_ON
             case FMUSIC_XM_VOLUMESLIDE:
                 if (cptr->volslide >> 4) {
                     cptr->volume += (cptr->volslide >> 4);
@@ -613,15 +691,21 @@ void ufmod_do_effs(ufmod_t *ctx) {
                 }
                 cptr->notectrl |= FMUSIC_VOLUME;
                 break;
+#endif
+#if UFMOD_GLOBALVOLSLIDE_ON
             case FMUSIC_XM_GLOBALVOLSLIDE:
                 if (ctx->globalvsl >> 4) {
                     ctx->globalvolume += (ctx->globalvsl >> 4);
+#if UFMOD_SETGLOBALVOLUME_ON
                     if (ctx->globalvolume > 64) ctx->globalvolume = 64;
+#endif
                 } else {
                     ctx->globalvolume -= (ctx->globalvsl & 0x0F);
                     if (ctx->globalvolume < 0) ctx->globalvolume = 0;
                 }
                 break;
+#endif
+#if UFMOD_PANSLIDE_ON
             case FMUSIC_XM_PANSLIDE:
                 if (cptr->panslide >> 4) {
                     cptr->pan += (cptr->panslide >> 4);
@@ -632,13 +716,16 @@ void ufmod_do_effs(ufmod_t *ctx) {
                 }
                 cptr->notectrl |= FMUSIC_PAN;
                 break;
+#endif
             case FMUSIC_XM_SPECIAL: {
                 uint8_t cmd = param >> 4;
                 uint8_t p = param & 0x0F;
+#if UFMOD_NOTECUT_ON
                 if (cmd == FMUSIC_XM_NOTECUT && ctx->tick == p) {
                     cptr->volume = 0;
                     cptr->notectrl |= FMUSIC_VOLUME;
                 }
+#endif
                 break;
             }
         }
