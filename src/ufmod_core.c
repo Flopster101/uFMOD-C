@@ -101,4 +101,55 @@ void ufmod_get_row_order(const ufmod_t *ctx, unsigned int *row, unsigned int *or
     if (row) *row = (unsigned int)ctx->row;
     if (order) *order = (unsigned int)ctx->order;
 }
+
+void ufmod_get_info(const ufmod_t *ctx, unsigned int *channels, unsigned int *orders, unsigned int *bpm, unsigned int *speed) {
+    if (!ctx) return;
+    if (channels) *channels = (unsigned int)ctx->numchannels;
+    if (orders) *orders = (unsigned int)ctx->numorders;
+    if (bpm) *bpm = (unsigned int)ctx->defaultbpm;
+    if (speed) *speed = (unsigned int)ctx->speed;
+}
+
+int ufmod_get_channel_volume(const ufmod_t *ctx, unsigned int channel) {
+    if (!ctx || channel >= (unsigned int)ctx->numchannels) return 0;
+    const FSOUND_CHANNEL *c0 = &ctx->Channels[channel * 2];
+    const FSOUND_CHANNEL *c1 = &ctx->Channels[channel * 2 + 1];
+    int v0 = c0->fsptr ? c0->actualvolume : 0;
+    int v1 = c1->fsptr ? c1->actualvolume : 0;
+    return (v0 > v1) ? v0 : v1;
+}
+#endif
+
+#if UFMOD_JUMP_TO_PAT_ON
+void ufmod_jump_order(ufmod_t *ctx, int order) {
+    if (!ctx || ctx->numorders == 0) return;
+    if (order < 0) order = 0;
+    if (order >= (int)ctx->numorders) order = (int)ctx->numorders - 1;
+    ctx->nextorder = order;
+    ctx->nextrow = 0;
+    ctx->finished = 0;
+}
+
+void ufmod_restart(ufmod_t *ctx) {
+    if (!ctx) return;
+    ctx->order = 0;
+    ctx->row = 0;
+    ctx->tick = 0;
+    ctx->nextorder = -1;
+    ctx->nextrow = -1;
+    ctx->loop_count = 0;
+    ctx->finished = 0;
+    ctx->time_ms = 0;
+    ctx->globalvolume = 64;
+    ctx->patterndelay = 0;
+    ctx->mixer_samplesleft = 0;
+    memset(ctx->Channels, 0, sizeof(ctx->Channels));
+    for (size_t ch = 0; ch < (size_t)ctx->numchannels; ch++) {
+        ctx->uFMOD_Ch[ch].cptr = &ctx->Channels[ch * 2];
+        ctx->uFMOD_Ch[ch].volume = 0;
+        ctx->uFMOD_Ch[ch].envvol = 64;
+        ctx->uFMOD_Ch[ch].fadeoutvol = 65536;
+        ctx->uFMOD_Ch[ch].keyoff = 0;
+    }
+}
 #endif

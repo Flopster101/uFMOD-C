@@ -28,6 +28,10 @@ int          ufmod_get_loop_count(const ufmod_t *ctx);
 void         ufmod_set_target_loops(ufmod_t *ctx, int target_loops);
 const char*  ufmod_get_title(const ufmod_t *ctx);
 void         ufmod_get_row_order(const ufmod_t *ctx, unsigned int *row, unsigned int *order);
+void         ufmod_jump_order(ufmod_t *ctx, int order);
+void         ufmod_restart(ufmod_t *ctx);
+void         ufmod_get_info(const ufmod_t *ctx, unsigned int *channels, unsigned int *orders, unsigned int *bpm, unsigned int *speed);
+int          ufmod_get_channel_volume(const ufmod_t *ctx, unsigned int channel);
 
 #ifdef __cplusplus
 }
