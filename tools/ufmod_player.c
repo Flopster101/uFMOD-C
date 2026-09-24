@@ -167,6 +167,7 @@ int main(int argc, char **argv) {
     unsigned int sample_rate = 48000;
     int initial_vol = 192;
     int infinite_loop = 1;
+    unsigned int quirks = 0xFFFFFFFF;
 
     for (int i = 2; i < argc; i++) {
         if (strcmp(argv[i], "--noloop") == 0) {
@@ -175,6 +176,14 @@ int main(int argc, char **argv) {
             sample_rate = (unsigned int)atoi(argv[++i]);
         } else if (strcmp(argv[i], "--vol") == 0 && i + 1 < argc) {
             initial_vol = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--quirks") == 0 && i + 1 < argc) {
+            const char *q = argv[++i];
+            if (strcmp(q, "none") == 0) quirks = UFMOD_QUIRK_NONE;
+            else if (strcmp(q, "skidrow") == 0) quirks = UFMOD_QUIRK_SKIDROW_LAUNCHER;
+            else if (strcmp(q, "persist") == 0) quirks = UFMOD_QUIRK_PERSIST_LOOPING_VOICES;
+            else if (strcmp(q, "unclamped") == 0) quirks = UFMOD_QUIRK_UNCLAMPED_GLOBAL_VOLSLIDE;
+        } else if (strcmp(argv[i], "--skidrow") == 0) {
+            quirks = UFMOD_QUIRK_SKIDROW_LAUNCHER;
         }
     }
 
@@ -205,6 +214,10 @@ int main(int argc, char **argv) {
     if (!ctx) {
         fprintf(stderr, "Failed to load XM module with uFMOD\n");
         return 1;
+    }
+
+    if (quirks != 0xFFFFFFFF) {
+        ufmod_set_quirks(ctx, quirks);
     }
 
     ufmod_set_volume(ctx, initial_vol);
