@@ -40,6 +40,14 @@ size_t ufmod_render(ufmod_t *ctx, int16_t *dest, size_t num_frames) {
     return ufmod_render_frames(ctx, dest, num_frames);
 }
 
+unsigned int ufmod_get_sample_rate(const ufmod_t *ctx) {
+    return ctx ? ctx->mix_rate : 0;
+}
+
+unsigned int ufmod_get_channel_count(const ufmod_t *ctx) {
+    return ctx ? (unsigned int)ctx->numchannels : 0;
+}
+
 void ufmod_free(ufmod_t *ctx) {
     if (!ctx) return;
 
